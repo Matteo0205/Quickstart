@@ -1,9 +1,16 @@
 package org.firstinspires.ftc.teamcode.Config.Util;
 
+import com.pedropathing.geometry.Pose;
+import com.pedropathing.ivy.CommandBuilder;
+import com.pedropathing.ivy.commands.Commands;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.seattlesolvers.solverslib.command.InstantCommand;
+import com.pedropathing.math.Vector;
+import com.pedropathing.ivy.Command;
+import com.pedropathing.ivy.CommandBuilder;
+
 
 import org.firstinspires.ftc.teamcode.Config.Systems.Intake;
 import org.firstinspires.ftc.teamcode.Config.Systems.Gate;
@@ -50,7 +57,7 @@ public class Robot {
             case SPINNING_UP:
                 shooter.close();
                 gate.open();
-                if(shooter.atTarget())
+                if(shooter.atTarget() && turret.isAtTarget())
                 {
                     state = ShootingState.SHOOTING;
                 }
@@ -90,5 +97,44 @@ public class Robot {
     {
         stopShooting();
         IntakeStop();
+    }
+    public double getDistance(Pose robotPose , Pose targetPose)
+    {
+        double distance = 0;
+        distance = Math.hypot(targetPose.getX() - robotPose.getX(), targetPose.getY() - robotPose.getY());
+        return distance;
+    }
+    public void TurretAim(Pose robotPose , Pose targetPose ,Vector robotVelocity)
+    {
+        turret.faceWithVelocityCompensation(robotPose , targetPose , robotVelocity);
+    }
+
+    /** IVY **/
+    public CommandBuilder StartShootingCommand() {
+        return Commands.instant(this::startShooting);
+    }
+    public CommandBuilder StopShootingCommand() {
+        return Commands.instant(this::stopShooting);
+    }
+    public CommandBuilder PeriodicCommand() {
+        return Commands.instant(this::periodic);
+    }
+    public CommandBuilder HandleShooterCommand() {
+        return Commands.instant(this::handleshooter);
+    }
+    public CommandBuilder IntakeSpinInCommand() {
+        return Commands.instant(this::IntakeSpinIn);
+    }
+    public CommandBuilder IntakeSpinOutCommand() {
+        return Commands.instant(this::IntakeSpinOut);
+    }
+    public CommandBuilder IntakeStopCommand() {
+        return Commands.instant(this::IntakeStop);
+    }
+     public CommandBuilder StopAllCommand() {
+        return Commands.instant(this::stopAll);
+    }
+    public CommandBuilder TurretAimCommand(Pose robotPose , Pose targetPose ,Vector robotVelocity) {
+        return Commands.instant(() -> TurretAim(robotPose, targetPose, robotVelocity));
     }
 }

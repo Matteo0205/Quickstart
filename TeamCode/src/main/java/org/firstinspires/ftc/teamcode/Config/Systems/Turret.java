@@ -12,7 +12,7 @@ import com.seattlesolvers.solverslib.hardware.motors.CRServoGroup;
 @Config
 public class Turret {
 
-    public static double timeOfFlight = 0.7;
+    public static double timeOfFlight = 0;
 
     public static double kP = 0.002;
     public static double kD = 0.000001;

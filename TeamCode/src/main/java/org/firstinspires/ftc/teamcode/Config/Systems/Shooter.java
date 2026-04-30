@@ -9,6 +9,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.seattlesolvers.solverslib.util.LUT;
 
 @Config
 public class Shooter {
@@ -111,20 +112,51 @@ public class Shooter {
         return Math.abs(targetVelocity - currentVelocity) < 50;
     }
 
-    public void shootDistance(double distanceCm) { //Linear interpolation table
-        double targetV = 0.0404 * distanceCm * distanceCm - 2.0126 * distanceCm + 1042.35;
-        double hoodPos = 0.00232 * distanceCm + 0.548;
+    public void ShootDistances(double distance) {
+        LUT<Double, Double> speeds = new LUT<Double, Double >();
+        LUT<Double, Double> HoodAngle = new LUT<Double, Double>();
 
-        if (targetV > 1600) targetV = 1600;
-        if (targetV < 900) targetV = 900;
+        speeds.add(100.0, 1200.0);
+        speeds.add(100.0, 1200.0);
+        speeds.add(100.0, 1200.0);
+        speeds.add(100.0, 1200.0);
+        speeds.add(100.0, 1200.0);
+        speeds.add(10.0, 1200.0);
+        speeds.add(100.0, 1200.0);
+        speeds.add(100.0, 1200.0);
+        speeds.add(100.0, 1200.0);
+        speeds.add(100.0, 1200.0);
+        double v = speeds.get(distance); // generezi ecuatia pentru distanta
 
-        if (hoodPos > 0.9) hoodPos = 0.9;
-        if (hoodPos < 0.67) hoodPos = 0.67;
+        HoodAngle.add(100.0, 0.1);
+        HoodAngle.add(100.0, 0.1);
+        HoodAngle.add(100.0, 0.1);
+        HoodAngle.add(100.0, 0.1);
+        HoodAngle.add(100.0, 0.1);
+        HoodAngle.add(100.0, 0.1);
+        HoodAngle.add(100.0, 0.1);
+        HoodAngle.add(100.0, 0.1);
+        HoodAngle.add(100.0, 0.1);
+        double a = HoodAngle.get(distance); // generezi ecuatia pentru distanta
 
-        setTarget(targetV);
-        setPosition(hoodPos);
+        if(v > 2200)
+        {
+            setTarget(2200);
+        } else
+        {
+            setTarget(v);
+        }
+        if(a > 1)
+        {
+            setPosition(1);
+        } else if (a < 0)
+        {
+            setPosition(0);
+        } else
+        {
+            setPosition(a);
+        }
     }
-
     public void close() {
         setTarget(CLOSE_VELOCITY);
         setPosition(CLOSE_HOOD);
@@ -142,4 +174,5 @@ public class Shooter {
         return Commands.instant(this::far);
 
     }
+
 }

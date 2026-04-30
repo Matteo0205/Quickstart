@@ -68,10 +68,12 @@ public class Albastru extends OpMode {
         {
             gamepad1.rumble(1000);
         }
+
         robot.handleshooter();
         follower.update();
         robot.periodic();
     }
+
     }
 
 
