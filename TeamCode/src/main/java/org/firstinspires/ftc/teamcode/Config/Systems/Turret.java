@@ -4,10 +4,11 @@ import com.acmerobotics.dashboard.config.Config;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.Vector;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.seattlesolvers.solverslib.hardware.motors.CRServo;
 import com.seattlesolvers.solverslib.hardware.motors.CRServoGroup;
+
+import org.firstinspires.ftc.teamcode.Config.Util.TurretState;
 
 @Config
 public class Turret {
@@ -34,6 +35,7 @@ public class Turret {
     private double targetAngleDeg = 0.0;
     private double lastError = 0.0;
     private long lastTime = 0;
+    private int encoderOffset = 0;
 
     public boolean activated = false;
 
@@ -49,6 +51,34 @@ public class Turret {
         encoderMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         lastTime = System.nanoTime();
+    }
+
+    public void init() {
+        if (TurretState.HAS_ANGLE) {
+            resumeFromPosition(TurretState.ANGLE);
+        } else {
+            resetEncoder();
+        }
+    }
+
+    public void resetEncoder() {
+        encoderMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        encoderMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        encoderOffset = 0;
+        lastError = 0.0;
+        targetAngleDeg = 0.0;
+        lastTime = System.nanoTime();
+    }
+
+    public void resumeFromPosition(double savedAngleDeg) {
+        encoderOffset = (int) ((savedAngleDeg / 360.0) * TICKS_PER_REV * GEAR_RATIO);
+        lastError = 0.0;
+        targetAngleDeg = savedAngleDeg;
+        lastTime = System.nanoTime();
+    }
+
+    public void saveCurrentAngle() {
+        TurretState.save(getCurrentAngleDeg());
     }
 
     public void faceWithVelocityCompensation(Pose targetPose, Pose robotPose, Vector robotVelocity) {
@@ -98,13 +128,12 @@ public class Turret {
         setPower(power);
     }
 
-
     private void setPower(double power) {
         servoGroup.set(power);
     }
 
     private double getCurrentAngleDeg() {
-        double ticks = encoderMotor.getCurrentPosition();
+        double ticks = encoderMotor.getCurrentPosition() + encoderOffset;
         return (ticks / (TICKS_PER_REV * GEAR_RATIO)) * 360.0;
     }
 
@@ -119,11 +148,11 @@ public class Turret {
         lastError = 0.0;
         setPower(0);
     }
+
     public boolean isAtTarget() {
-        double currentAngleDeg = getCurrentAngleDeg();
-        double error = targetAngleDeg - currentAngleDeg;
-        return Math.abs(error) < DEAD_ZONE_DEG;
+        return Math.abs(targetAngleDeg - getCurrentAngleDeg()) < DEAD_ZONE_DEG;
     }
+
     public double getTargetAngleDeg() {
         return targetAngleDeg;
     }

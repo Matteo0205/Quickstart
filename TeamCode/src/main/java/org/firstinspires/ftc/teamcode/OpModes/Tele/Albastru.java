@@ -8,54 +8,65 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.Config.Util.FollowerConstants;
 import org.firstinspires.ftc.teamcode.Config.Util.Robot;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 @Config
 @Configurable
-@TeleOp(name = "Albastru" , group = "TeleOp")
+@TeleOp(name = "Albastru", group = "TeleOp")
 public class Albastru extends OpMode {
-    Robot robot;
-    Follower follower;
-    ElapsedTime timer = new ElapsedTime();
+
+    private Robot robot;
+    private Follower follower;
+    private ElapsedTime timer;
+
+    private boolean previousY;
+    private boolean previousB;
+    private boolean rumbled;
+
     @Override
     public void init() {
         robot = new Robot(hardwareMap);
+
         follower = Constants.createFollower(hardwareMap);
         follower.setMaxPower(1);
-        follower.setStartingPose(new Pose(0, 0 , Math.toRadians(90)));
+        follower.setStartingPose(new Pose(0, 0, Math.toRadians(90)));
+
         timer = new ElapsedTime();
+
+        previousY = false;
+        previousB = false;
+        rumbled = false;
     }
+
     @Override
-    public void start()
-    {
+    public void start() {
         timer.reset();
         follower.startTeleOpDrive(true);
     }
+
     @Override
     public void loop() {
+        boolean currentY = gamepad1.y;
+        boolean currentB = gamepad1.b;
 
-        if(gamepad1.yWasPressed() )
-        {
+        if (currentY && !previousY) {
             robot.startShooting();
         }
-        if(gamepad1.bWasPressed())
-        {
+
+        if (currentB && !previousB) {
             robot.stopAll();
         }
 
-        if(gamepad1.right_trigger > 0.1)
-        {
-            robot.IntakeSpinIn();
-        }
-        else if(gamepad1.left_trigger > 0.1)
-        {
-            robot.IntakeSpinOut();
-        }
-        else
-        {
-            robot.IntakeStop();
+        previousY = currentY;
+        previousB = currentB;
+
+        if (gamepad1.right_trigger > 0.1) {
+            robot.intakeSpinIn();
+        } else if (gamepad1.left_trigger > 0.1) {
+            robot.intakeSpinOut();
+        } else {
+            robot.intakeStop();
         }
 
         follower.setTeleOpDrive(
@@ -64,16 +75,13 @@ public class Albastru extends OpMode {
                 -gamepad1.right_stick_x,
                 true
         );
-        if(timer.seconds() == 100)
-        {
+
+        if (!rumbled && timer.seconds() >= 100) {
             gamepad1.rumble(1000);
+            rumbled = true;
         }
 
-        robot.handleshooter();
         follower.update();
         robot.periodic();
     }
-
-    }
-
-
+}

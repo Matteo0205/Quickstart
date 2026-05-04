@@ -1,140 +1,174 @@
 package org.firstinspires.ftc.teamcode.Config.Util;
 
+import static com.pedropathing.ivy.commands.Commands.instant;
+import static com.pedropathing.ivy.groups.Groups.sequential;
+
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.ivy.CommandBuilder;
 import com.pedropathing.ivy.commands.Commands;
-import com.qualcomm.robotcore.hardware.Gamepad;
-import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.util.ElapsedTime;
-import com.seattlesolvers.solverslib.command.InstantCommand;
 import com.pedropathing.math.Vector;
-import com.pedropathing.ivy.Command;
-import com.pedropathing.ivy.CommandBuilder;
+import com.qualcomm.robotcore.hardware.HardwareMap;
 
-
-import org.firstinspires.ftc.teamcode.Config.Systems.Intake;
 import org.firstinspires.ftc.teamcode.Config.Systems.Gate;
+import org.firstinspires.ftc.teamcode.Config.Systems.Intake;
 import org.firstinspires.ftc.teamcode.Config.Systems.Shooter;
 import org.firstinspires.ftc.teamcode.Config.Systems.Transfer;
 import org.firstinspires.ftc.teamcode.Config.Systems.Turret;
 
-import java.time.Instant;
-
 public class Robot {
+
     private final Intake intake;
     private final Shooter shooter;
     private final Transfer transfer;
     private final Turret turret;
     private final Gate gate;
-    enum ShootingState {
+
+    private ShootingState state = ShootingState.IDLE;
+
+    private enum ShootingState {
         IDLE,
         SPINNING_UP,
         SHOOTING
     }
-    ShootingState state = ShootingState.IDLE;
-    public Robot(HardwareMap HwMap) {
-        shooter = new Shooter(HwMap);
-        transfer = new Transfer(HwMap);
-        turret = new Turret(HwMap);
-        gate = new Gate(HwMap);
-        intake = new Intake(HwMap);
+
+    public Robot(HardwareMap hardwareMap) {
+        shooter = new Shooter(hardwareMap);
+        transfer = new Transfer(hardwareMap);
+        turret = new Turret(hardwareMap);
+        gate = new Gate(hardwareMap);
+        intake = new Intake(hardwareMap);
+
+        turret.init();
     }
-    public void periodic()
-    {
+
+    public void periodic() {
         shooter.periodic();
         turret.update();
+        handleShooter();
     }
-    public void handleshooter()
-    {
-        switch(state)
-        {
+
+    public void closeShooter(double target, double pos) {
+        shooter.setTarget(target);
+        shooter.setPosition(pos);
+    }
+
+    public void handleShooter() {
+        switch (state) {
             case IDLE:
                 shooter.off();
                 intake.stop();
                 transfer.stop();
                 gate.close();
                 break;
+
             case SPINNING_UP:
                 shooter.close();
                 gate.open();
-                if(shooter.atTarget() && turret.isAtTarget())
-                {
+
+                if (shooter.atTarget() && turret.isAtTarget()) {
                     state = ShootingState.SHOOTING;
                 }
                 break;
+
             case SHOOTING:
                 transfer.on();
                 intake.on();
                 break;
         }
     }
-    public void startShooting()
-    {
+
+    public void startShooting() {
         state = ShootingState.SPINNING_UP;
     }
-    public void stopShooting()
-    {
+
+    public void stopShooting() {
         state = ShootingState.IDLE;
     }
-    public void IntakeSpinIn()
-    {
+
+    public void intakeSpinIn() {
         intake.on();
         transfer.on();
     }
-    public void IntakeSpinOut()
-    {
+
+    public void intakeSpinOut() {
         intake.reverse();
         transfer.reverse();
     }
-    public void IntakeStop()
-    {
-        if(state != ShootingState.SPINNING_UP) {
+
+    public void intakeStop() {
+        if (state != ShootingState.SPINNING_UP) {
             intake.stop();
             transfer.stop();
         }
     }
-    public void stopAll()
-    {
+
+    public void stopAll() {
         stopShooting();
-        IntakeStop();
-    }
-    public double getDistance(Pose robotPose , Pose targetPose)
-    {
-        double distance = 0;
-        distance = Math.hypot(targetPose.getX() - robotPose.getX(), targetPose.getY() - robotPose.getY());
-        return distance;
-    }
-    public void TurretAim(Pose robotPose , Pose targetPose ,Vector robotVelocity)
-    {
-        turret.faceWithVelocityCompensation(robotPose , targetPose , robotVelocity);
+        intakeStop();
     }
 
-    /** IVY **/
-    public CommandBuilder StartShootingCommand() {
+    public double getDistance(Pose robotPose, Pose targetPose) {
+        return Math.hypot(
+                targetPose.getX() - robotPose.getX(),
+                targetPose.getY() - robotPose.getY()
+        );
+    }
+
+    public void turretAim(Pose robotPose, Pose targetPose, Vector robotVelocity) {
+        turret.faceWithVelocityCompensation(robotPose, targetPose, robotVelocity);
+    }
+
+    public double getTurretAngle() {
+        return turret.getCurrentAngleDegPublic();
+    }
+
+    public CommandBuilder startShootingCommand() {
         return Commands.instant(this::startShooting);
     }
-    public CommandBuilder StopShootingCommand() {
+
+    public CommandBuilder stopShootingCommand() {
         return Commands.instant(this::stopShooting);
     }
-    public CommandBuilder PeriodicCommand() {
+
+    public CommandBuilder periodicCommand() {
         return Commands.instant(this::periodic);
     }
-    public CommandBuilder HandleShooterCommand() {
-        return Commands.instant(this::handleshooter);
+
+    public CommandBuilder handleShooterCommand() {
+        return Commands.instant(this::handleShooter);
     }
-    public CommandBuilder IntakeSpinInCommand() {
-        return Commands.instant(this::IntakeSpinIn);
+
+    public CommandBuilder intakeSpinInCommand() {
+        return Commands.instant(this::intakeSpinIn);
     }
-    public CommandBuilder IntakeSpinOutCommand() {
-        return Commands.instant(this::IntakeSpinOut);
+
+    public CommandBuilder intakeSpinOutCommand() {
+        return Commands.instant(this::intakeSpinOut);
     }
-    public CommandBuilder IntakeStopCommand() {
-        return Commands.instant(this::IntakeStop);
+
+    public CommandBuilder intakeStopCommand() {
+        return Commands.instant(this::intakeStop);
     }
-     public CommandBuilder StopAllCommand() {
+
+    public CommandBuilder stopAllCommand() {
         return Commands.instant(this::stopAll);
     }
-    public CommandBuilder TurretAimCommand(Pose robotPose , Pose targetPose ,Vector robotVelocity) {
-        return Commands.instant(() -> TurretAim(robotPose, targetPose, robotVelocity));
+
+    public CommandBuilder turretAimCommand(Pose robotPose, Pose targetPose, Vector robotVelocity) {
+        return Commands.instant(() -> turretAim(robotPose, targetPose, robotVelocity));
+    }
+
+    public CommandBuilder closeShootCommand(double target, double pos) {
+        return instant(() -> closeShooter(target, pos));
+    }
+
+    public CommandBuilder autoShootCommand() {
+        return sequential(
+                Commands.waitUntil(shooter::atTarget),
+                Commands.instant(gate::open),
+                intakeSpinInCommand(),
+                Commands.waitMs(2000),
+                Commands.instant(gate::close)
+        );
     }
 }
